@@ -1,0 +1,57 @@
+services:
+
+  doris:
+    image: dyrnq/doris:2.1.7
+    container_name: doris
+    hostname: doris
+    privileged: true
+    environment:
+      - RUN_MODE=STANDALONE
+      - TZ=UTC
+    ports:
+      - "9030:9030"
+      - "8030:8030"
+      - "8040:8040"
+    volumes:
+      - doris_data:/opt/apache-doris
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -u root --connect-timeout=3 -e 'SELECT 1' 2>/dev/null || exit 1"]
+      interval: 15s
+      timeout: 8s
+      retries: 15
+      start_period: 90s
+
+  nifi:
+    image: apache/nifi:1.25.0
+    container_name: nifi
+    depends_on:
+      doris:
+        condition: service_healthy
+    ports:
+      - "8443:8443"
+      - "8888:8888"
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=admin12345678
+      - NIFI_WEB_HTTPS_PORT=8443
+    volumes:
+      - nifi_data:/opt/nifi/nifi-current/conf
+      - nifi_logs:/opt/nifi/nifi-current/logs
+      - ./nifi_drivers:/opt/nifi/drivers:ro
+      - ./Data:/opt/nifi/data
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  doris_data:
+  nifi_data:
+  nifi_logs:
+  qdrant_data:
+

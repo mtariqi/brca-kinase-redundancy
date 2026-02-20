@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.egg-info/
+
+# Data files (too large for GitHub)
+Data/*.npy
+Data/*.db
+Data/*.csv
+Data/*.png
+
+# Docker volumes
+doris_data/
+nifi_data/
+nifi_logs/
+qdrant_data/
+
+# Keys
+*.key
+.env
+
+# Results images (optional — remove if you want them tracked)
+# Results/*.png
+
