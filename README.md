@@ -1,5 +1,3 @@
-<div align="center">
-
 <!-- BANNER -->
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=BRCA%20Kinase%20Redundancy&fontSize=40&fontColor=fff&animation=twinkling&fontAlignY=35&desc=Multi-Modal%20RTK%20%E2%80%A2%20NRTK%20Analysis%20in%20Breast%20Cancer&descAlignY=55&descSize=18" width="100%"/>
 
