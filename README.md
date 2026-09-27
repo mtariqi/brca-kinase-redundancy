@@ -257,6 +257,20 @@ brca-kinase-redundancy/
 
 ## 📈 Key Findings
 
+### September 2026 R co-expression analysis
+
+An additional [TCGA-BRCA RTK/NRTK co-expression analysis](Results/TCGA_BRCA_RTK_NRTK_coexpression_2026-09.md)
+reports results for **1,224 samples**. Its leading RTKs by BH-filtered
+redundancy score were **PDGFRA, PDGFRB, KDR, EGFR, and FLT1**. The combined
+network's leading hubs by degree included **LYN, FYN, and JAK1**. A high-versus-low
+redundancy survival comparison was not significant (log-rank **p = 0.7297**);
+subtype analysis was skipped. The linked result note documents the score,
+provenance, and validation limitations.
+
+The table below describes the earlier **1,082-sample Python multimodal
+pipeline**. Its composite score and results are separate from the R
+co-expression analysis.
+
 | Finding | Detail |
 |---------|--------|
 | **Kinase pairs evaluated** | 903 unique pairs |
