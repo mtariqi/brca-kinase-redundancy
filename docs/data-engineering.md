@@ -9,6 +9,39 @@ rolls back its own ingest; previously accepted datasets remain intact.
 
 ## Data flow
 
+### Local GDC STAR and UMich exports
+
+For the local folders reported on 2026-09-27, convert into private `Data/raw/`
+without copying original GDC files into Git. These commands default to primary
+tumor samples and `tpm_unstranded` (TPM is not raw counts):
+
+```bash
+python -m engineering.source_converters gdc \
+  --root /home/mtariq/rtk_nrtk_tnbc/data/raw/tcga_brca/TCGA-BRCA \
+  --sample-sheet /home/mtariq/rtk_nrtk_tnbc/data/raw/tcga_brca/gdc_sample_sheet.tsv \
+  --output Data/raw/tcga/expression_long.csv
+python -m engineering.source_converters umich \
+  --input /home/mtariq/breast_cancer_proteogenomics/clean_cptac_data/BRCA_UMICH_proteomics_RTK_NRTK.csv \
+  --output Data/raw/cptac/protein_long.csv
+```
+
+The STAR converter uses `File ID` and `File Name` from the GDC sample sheet,
+requires unique `Sample ID` values, excludes STAR summary rows, and rejects
+duplicate gene symbols or mismatched gene sets. Check `Sample Type` values in
+the sheet if you need another subset, and record the GDC release. Raw counts
+can be selected with `--measurement unstranded`; do not mix counts and TPM in
+one analysis. UMich `Gene` is treated as an Ensembl identifier and the
+normalized abundance is preserved in its source scale. The converter refuses
+repeated gene IDs, which require a documented protein-group aggregation rule.
+The full `BRCA_UMICH_proteomics.csv` can be selected instead of the kinase
+subset when appropriate. Neither conversion implies a matched TCGA/CPTAC
+patient cohort or independently reproduces published results.
+
+Copy `config/datasets.example.json` to `Data/datasets.json`, record the real
+source release/version, and ingest the generated files as described below.
+The separate mutation, sequence and pair inputs must be prepared and validated
+before running `engineering.materialize`.
+
 1. Keep raw source files outside Git under `Data/raw/`. Record each source
    release, permitted use, and normalization in your run notes.
 2. Convert matrices to the *declared long format* outside this ingest step.
