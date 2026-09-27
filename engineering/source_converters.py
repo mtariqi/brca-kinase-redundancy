@@ -6,6 +6,7 @@ import argparse
 import csv
 import math
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -29,7 +30,8 @@ def _atomic_csv(destination: Path, columns: list[str], write_rows):
 
 
 def convert_gdc(root: Path, sample_sheet: Path, destination: Path,
-                measurement: str = "tpm_unstranded", sample_type: str = "Primary Tumor") -> dict:
+                measurement: str = "tpm_unstranded", sample_type: str = "Primary Tumor",
+                sample_key: str = "sample-id") -> dict:
     """Require unique GDC file/sample mappings; retain gene symbols for kinase analyses."""
     if measurement not in {"unstranded", "tpm_unstranded", "fpkm_unstranded", "fpkm_uq_unstranded"}:
         raise ValueError("Unsupported STAR measurement")
@@ -47,8 +49,12 @@ def convert_gdc(root: Path, sample_sheet: Path, destination: Path,
         raise ValueError(f"No STAR files with sample type {sample_type!r}")
     ids = [r["Sample ID"] for r in records]
     filenames = [r["File ID"] for r in records]
-    if len(set(ids)) != len(ids) or len(set(filenames)) != len(filenames):
-        raise ValueError("Duplicate sample ID or file ID: resolve aliquots explicitly")
+    if sample_key not in {"sample-id", "file-id"}:
+        raise ValueError("sample_key must be sample-id or file-id")
+    if any(not x for x in ids + filenames) or len(set(filenames)) != len(filenames):
+        raise ValueError("Empty ID or repeated file ID in sample sheet")
+    if sample_key == "sample-id" and len(set(ids)) != len(ids):
+        raise ValueError("Duplicate sample ID: use --sample-key file-id to preserve distinct files")
     paths = {}
     for path in root.rglob("*.rna_seq.augmented_star_gene_counts.tsv"):
         paths.setdefault((path.parent.name, path.name), []).append(path)
@@ -56,7 +62,7 @@ def convert_gdc(root: Path, sample_sheet: Path, destination: Path,
     def write(writer):
         total = 0
         expected_genes = None
-        for record in sorted(records, key=lambda r: r["Sample ID"]):
+        for record in sorted(records, key=lambda r: (r["Sample ID"], r["File ID"])):
             matches = paths.get((record["File ID"], record["File Name"]), [])
             if len(matches) != 1 or matches[0].resolve() == destination.resolve():
                 raise ValueError(f"Expected one GDC file for {record['File ID']}: found {len(matches)}")
@@ -76,13 +82,14 @@ def convert_gdc(root: Path, sample_sheet: Path, destination: Path,
                     value = float(row[measurement])
                     if not math.isfinite(value) or value < 0:
                         raise ValueError(f"Invalid {measurement} for {gene!r}")
-                    writer.writerow((record["Sample ID"], gene, value))
+                    writer.writerow((record["Sample ID"] if sample_key == "sample-id" else record["File ID"], gene, value))
                     total += 1
                 if not genes or (expected_genes is not None and genes != expected_genes):
                     raise ValueError(f"Empty or inconsistent gene set in {matches[0]}")
                 expected_genes = genes
         return {"samples": len(records), "genes_per_sample": len(expected_genes), "measurements": total,
-                "unit": measurement, "sample_type": sample_type}
+                "unit": measurement, "sample_type": sample_type, "sample_key": sample_key,
+                "duplicate_sample_ids": len(ids) - len(set(ids))}
 
     return _atomic_csv(destination, ["sample_id", "gene", "expression"], write)
 
@@ -99,7 +106,9 @@ def convert_umich(source: Path, destination: Path, *, delimiter: str = ",") -> d
             metadata = {"Index", "NumberPSM", "Gene", "MaxPepProb", "ReferenceIntensity"}
             if len(fields) != len(set(fields)) or not metadata.issubset(fields):
                 raise ValueError("Unexpected or duplicate UMich headers")
-            samples = [f for f in fields if f not in metadata]
+            # Other annotation columns, including gene symbols, can be present.
+            # UMich sample identifiers in the supplied export have the form 11BR047.
+            samples = [f for f in fields if re.fullmatch(r"[0-9]{2}BR[0-9]{3}", f)]
             if not samples:
                 raise ValueError("No abundance sample columns")
             genes = set()
@@ -137,13 +146,16 @@ def main():
     gdc.add_argument("--measurement", default="tpm_unstranded",
                      choices=["unstranded", "tpm_unstranded", "fpkm_unstranded", "fpkm_uq_unstranded"])
     gdc.add_argument("--sample-type", default="Primary Tumor")
+    gdc.add_argument("--sample-key", choices=["sample-id", "file-id"], default="sample-id",
+                     help="Use file-id to retain multiple files per biological sample without collapsing them")
     umich = sub.add_parser("umich")
     umich.add_argument("--input", type=Path, required=True)
     umich.add_argument("--output", type=Path, required=True)
     umich.add_argument("--tsv", action="store_true")
     args = parser.parse_args()
     if args.source == "gdc":
-        print(convert_gdc(args.root, args.sample_sheet, args.output, args.measurement, args.sample_type))
+        print(convert_gdc(args.root, args.sample_sheet, args.output, args.measurement,
+                          args.sample_type, args.sample_key))
     else:
         print(convert_umich(args.input, args.output, delimiter="\t" if args.tsv else ","))
 

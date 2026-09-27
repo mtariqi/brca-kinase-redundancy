@@ -36,6 +36,38 @@ class SourceConverterTests(unittest.TestCase):
                 convert_umich(source, output)
             self.assertFalse(output.exists())
 
+    def test_gdc_duplicate_samples_preserved_by_file_id(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for file_id in ("file-1", "file-2"):
+                source = root / "counts" / file_id
+                source.mkdir(parents=True)
+                (source / "counts.rna_seq.augmented_star_gene_counts.tsv").write_text(
+                    "gene_id\tgene_name\ttpm_unstranded\nENSG1\tEGFR\t2\n")
+            sheet = root / "sheet.tsv"
+            sheet.write_text("File ID\tFile Name\tSample ID\tSample Type\n" + "".join(
+                f"{file_id}\tcounts.rna_seq.augmented_star_gene_counts.tsv\tS1\tPrimary Tumor\n"
+                for file_id in ("file-1", "file-2")))
+            output = root / "expression.csv"
+            with self.assertRaisesRegex(ValueError, "Duplicate sample ID"):
+                convert_gdc(root / "counts", sheet, output)
+            result = convert_gdc(root / "counts", sheet, output, sample_key="file-id")
+            self.assertEqual(result["duplicate_sample_ids"], 1)
+            with output.open() as handle:
+                self.assertEqual([r[0] for r in list(csv.reader(handle))[1:]], ["file-1", "file-2"])
+
+    def test_umich_ignores_annotation_columns(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "protein.csv"
+            source.write_text("Index,NumberPSM,Gene,MaxPepProb,ReferenceIntensity,11BR047,Symbol\n"
+                              "a,1,ENSG1,1,2,27.1,PDGFRA\n")
+            output = root / "protein_long.csv"
+            result = convert_umich(source, output)
+            self.assertEqual(result["samples"], 1)
+            with output.open() as handle:
+                self.assertEqual(list(csv.reader(handle))[1], ["11BR047", "ENSG1", "27.1"])
+
 
 if __name__ == "__main__":
     unittest.main()
