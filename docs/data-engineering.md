@@ -19,10 +19,11 @@ tumor samples and `tpm_unstranded` (TPM is not raw counts):
 python -m engineering.source_converters gdc \
   --root /home/mtariq/rtk_nrtk_tnbc/data/raw/tcga_brca/TCGA-BRCA \
   --sample-sheet /home/mtariq/rtk_nrtk_tnbc/data/raw/tcga_brca/gdc_sample_sheet.tsv \
-  --output Data/raw/tcga/expression_long.csv --sample-key file-id
+  --output Data/raw/tcga/expression_long.csv --sample-key file-id \
+  --duplicate-gene-policy drop
 python -m engineering.source_converters umich \
   --input /home/mtariq/breast_cancer_proteogenomics/clean_cptac_data/BRCA_UMICH_proteomics_RTK_NRTK.csv \
-  --output Data/raw/cptac/protein_long.csv
+  --output Data/raw/cptac/protein_long.csv --protein-group-policy mean
 ```
 
 The STAR converter uses `File ID` and `File Name` from the GDC sample sheet,
@@ -35,6 +36,15 @@ IDs until you choose one file per biological sample using a recorded rule.
 The UMich converter selects columns matching the observed `11BR047` style
 sample identifiers and ignores annotation fields such as gene symbols.
 Check that all intended sample columns match this convention before ingest.
+`--duplicate-gene-policy drop` excludes every occurrence of an ambiguous
+symbol, such as CD99, from each file and reports the excluded symbols. Check
+the exclusion list; any mismatched per-file gene set still fails validation.
+`--protein-group-policy mean` computes an arithmetic mean of available
+normalized protein-group abundances for each Ensembl gene and CPTAC sample;
+it reports how many genes had multiple source rows. Missing cells are omitted
+from that mean. This is an explicit exploratory aggregation choice, not a
+claim that the UMich study recommends this statistic. Both policies default
+to `error`; document the chosen policy when reporting scientific results.
 Check `Sample Type` values in the sheet if you need another subset, and record
 the GDC release. Raw counts
 can be selected with `--measurement unstranded`; do not mix counts and TPM in

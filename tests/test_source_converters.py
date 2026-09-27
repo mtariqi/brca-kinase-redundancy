@@ -68,6 +68,36 @@ class SourceConverterTests(unittest.TestCase):
             with output.open() as handle:
                 self.assertEqual(list(csv.reader(handle))[1], ["11BR047", "ENSG1", "27.1"])
 
+    def test_duplicate_gdc_symbol_is_dropped_without_replacing_other_gene(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "counts" / "file-1"
+            source.mkdir(parents=True)
+            (source / "counts.rna_seq.augmented_star_gene_counts.tsv").write_text(
+                "gene_id\tgene_name\ttpm_unstranded\n"
+                "ENSG1\tCD99\t1\nENSG2\tEGFR\t3\nENSG3\tCD99\t2\n")
+            sheet = root / "sheet.tsv"
+            sheet.write_text("File ID\tFile Name\tSample ID\tSample Type\n"
+                             "file-1\tcounts.rna_seq.augmented_star_gene_counts.tsv\tS1\tPrimary Tumor\n")
+            output = root / "expression.csv"
+            result = convert_gdc(root / "counts", sheet, output, duplicate_gene_policy="drop")
+            self.assertEqual(result["omitted_ambiguous_symbols"], ["CD99"])
+            with output.open() as handle:
+                self.assertEqual(list(csv.reader(handle))[1:], [["S1", "EGFR", "3.0"]])
+
+    def test_umich_mean_uses_observed_protein_groups_per_sample(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "protein.csv"
+            source.write_text("Index,NumberPSM,Gene,MaxPepProb,ReferenceIntensity,11BR047,11BR048\n"
+                              "a,1,ENSG1,1,2,20,\nb,2,ENSG1,1,2,24,10\n")
+            output = root / "protein_long.csv"
+            result = convert_umich(source, output, protein_group_policy="mean")
+            self.assertEqual(result["aggregated_genes"], 1)
+            with output.open() as handle:
+                self.assertEqual(list(csv.reader(handle))[1:],
+                                 [["11BR047", "ENSG1", "22.0"], ["11BR048", "ENSG1", "10.0"]])
+
 
 if __name__ == "__main__":
     unittest.main()
