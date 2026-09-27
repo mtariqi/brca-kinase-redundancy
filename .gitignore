@@ -6,10 +6,15 @@ __pycache__/
 *.egg-info/
 
 # Data files (too large for GitHub)
+Data/
 Data/*.npy
 Data/*.db
 Data/*.csv
 Data/*.png
+Data/raw/
+Data/*.json
+Data/*.sqlite
+Data/*.sqlite3
 
 # Docker volumes
 doris_data/
@@ -23,4 +28,3 @@ qdrant_data/
 
 # Results images (optional — remove if you want them tracked)
 # Results/*.png
-

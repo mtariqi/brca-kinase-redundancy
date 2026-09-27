@@ -1,0 +1,49 @@
+{
+  "datasets": [
+    {
+      "id": "tcga_brca_expression_v1",
+      "file": "tcga/expression_long.csv",
+      "cohort": "tcga_brca_release_1",
+      "modality": "rna",
+      "source_version": "record GDC release or local extraction date here",
+      "columns": {"sample_id": "str", "gene": "str", "expression": "float"},
+      "key": ["sample_id", "gene"]
+    },
+    {
+      "id": "tcga_brca_mutation_v1",
+      "file": "tcga/mutation_long.csv",
+      "cohort": "tcga_brca_release_1",
+      "modality": "mutation",
+      "source_version": "record GDC release or local extraction date here",
+      "columns": {"sample_id": "str", "gene": "str", "mutated": "bool"},
+      "key": ["sample_id", "gene"]
+    },
+    {
+      "id": "kinase_sequences_v1",
+      "file": "reference/kinase_sequences.csv",
+      "cohort": "tcga_brca_release_1",
+      "modality": "sequence",
+      "source_version": "record UniProt/sequence reference here",
+      "columns": {"gene": "str", "sequence": "str"},
+      "key": ["gene"]
+    },
+    {
+      "id": "rtk_nrtk_pairs_v1",
+      "file": "reference/rtk_nrtk_pairs.csv",
+      "cohort": "tcga_brca_release_1",
+      "modality": "pairs",
+      "source_version": "record pair-list reference here",
+      "columns": {"RTK": "str", "NRTK": "str"},
+      "key": ["RTK", "NRTK"]
+    },
+    {
+      "id": "cptac_protein_v1",
+      "file": "cptac/protein_long.csv",
+      "cohort": "cptac_umich_release_1",
+      "modality": "protein",
+      "source_version": "record CPTAC release here",
+      "columns": {"cptac_sample_id": "str", "ensembl_gene_id": "str", "abundance": "float"},
+      "key": ["cptac_sample_id", "ensembl_gene_id"]
+    }
+  ]
+}
