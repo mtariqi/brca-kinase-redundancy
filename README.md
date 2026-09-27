@@ -110,6 +110,13 @@ Bootstrap  Network     PCA
 
 ## ⚡ Quick Start
 
+### Validated data preparation
+
+For a reproducible ingestion path, see the [data engineering workflow](docs/data-engineering.md).
+It validates declared TCGA/CPTAC files, tracks checksums and cohort provenance
+in SQLite, and materializes the legacy Python input tables only after key and
+sample checks. Raw patient-level files stay outside Git.
+
 ### Prerequisites
 
 ```bash
@@ -135,6 +142,8 @@ pip install pandas numpy scipy scikit-learn networkx matplotlib \
 ### 3. Start Infrastructure
 
 ```bash
+cp .env.example .env
+# Edit .env and set a unique NIFI_PASSWORD before starting services.
 docker-compose up -d
 # Wait ~90 seconds for Doris to initialise
 

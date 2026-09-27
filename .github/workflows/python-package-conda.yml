@@ -15,6 +15,8 @@ jobs:
           python-version: '3.10'
       - name: Check Python syntax
         run: python -m compileall -q brca_pipeline.py brca_pipeline_bootstrap_pcs.py
+      - name: Test data engineering contracts
+        run: python -m unittest discover -s tests -v
       - name: Check linked findings document
         run: |
           python - <<'PY'
