@@ -9,6 +9,34 @@ rolls back its own ingest; previously accepted datasets remain intact.
 
 ## Data flow
 
+### Kinase subset and repeated GDC samples
+
+Create a private `Data/kinase_symbols.txt` containing the exact symbols in the
+analysis, one per line. Record where that list came from and its version. A
+complete, validated 43-gene list is not shipped here, so do not infer it from
+the top-ranked genes in the historical report. Stream the 65.9-million-row
+GDC output into a smaller dataset:
+
+```bash
+python -m engineering.kinase_extract \
+  --input Data/raw/tcga/expression_long.csv \
+  --sample-sheet /home/mtariq/rtk_nrtk_tnbc/data/raw/tcga_brca/gdc_sample_sheet.tsv \
+  --genes-file Data/kinase_symbols.txt \
+  --output Data/raw/tcga/kinase_expression_file_ids.csv \
+  --report Data/kinase_extract_report.json
+```
+
+The private report lists all repeated biological sample IDs, file IDs, missing
+kinase symbols and output counts. The initial extract retains unique **file**
+IDs. To produce one biological sample per ID, review those repeated records
+against GDC metadata and create `Data/selected_gdc_file_ids.txt` with one
+chosen file ID per sample (include every other desired sample too). Document
+the decision rule and rerun with `--selected-file-ids
+Data/selected_gdc_file_ids.txt` and a different output path. That mode rejects
+remaining duplicate biological sample IDs and writes `Sample ID` in the output.
+Do not assume its sample IDs match a mutation cohort without validating both
+sources. The extract is still TPM and should not be interpreted as counts.
+
 ### Local GDC STAR and UMich exports
 
 For the local folders reported on 2026-09-27, convert into private `Data/raw/`
